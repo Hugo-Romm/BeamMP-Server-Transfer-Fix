@@ -66,7 +66,7 @@ two compiler workers to bound temporary work, not a CPU quota for the game.
 
 ```sh
 docker build --platform linux/arm64 -f Dockerfile.native -t beammp-transfer-fix .
-docker create --name beammp-native-export beammp-transfer-fix
+docker create --name beammp-native-export beammp-transfer-fix /out/BeamMP-Server
 docker cp beammp-native-export:/out/BeamMP-Server ./BeamMP-Server
 docker cp beammp-native-export:/out/build-result.json ./build-result.json
 docker rm beammp-native-export
@@ -82,9 +82,16 @@ package transitive versions from the tested build are recorded separately.
 `tools/compile.sh` contains the actual clone, patch, CMake/Ninja and strip sequence
 used for the tested native build. `Dockerfile.native` packages that sequence as a
 standalone public build without our private server image, credentials or bot.
-The tested original compiler run used the same Ubuntu base/toolchain and an
-existing private runtime as its starting image; the standalone public Dockerfile
-is a reproducible recipe but has not been cold-built separately in acceptance.
+The original tested compiler run used the same Ubuntu base/toolchain and an
+existing private runtime as its starting image. On 2026-10-13 the standalone
+public compiler stage was also cold-built successfully on ARM64, without that
+private image. Its rebuilt ELF SHA-256 is
+`01d8e669ab880f1054e71456416d22f1467a765c6afb92091b99910d263de26d`.
+Source/patch hashes were checked by the recipe; this independently rebuilt
+artifact is **not** the production ELF identified above. The scratch final stage
+is for file export, not a runnable server image; `docker create` supplies an
+explicit command and is not started. The compiler stage and file extraction were
+actually exercised. Network/source availability remains an external requirement.
 
 To apply only the patch to an existing clean upstream checkout:
 
