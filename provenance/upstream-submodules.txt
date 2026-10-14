@@ -1,0 +1,6 @@
+ 04952e4811e7d44708e64986bbc82fdc3485c800 deps/commandline (04952e4)
+ f33ca743fb105bf54293cc822f56cf2794d15bf2 deps/toml11 (f33ca74)
+ 7c26d9b8b731d556a2bf89848f59e8300eabc44b deps/toml11/docs/themes/hugo-book (7c26d9b)
+ ae7a13539fb71f270b87eb2e874fbac80bc8dda2 deps/toml11/tests/extlib/doctest (ae7a135)
+ 8c391e04fe4195d8be862c97f38cfe10e2a3472e deps/toml11/tests/extlib/json (8c391e0)
+ 5bf0c55239da398b8c6f450818c9e28d36bf9966 vcpkg (2022.02.02-11500-g5bf0c5523)

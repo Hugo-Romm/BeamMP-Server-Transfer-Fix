@@ -1,0 +1,158 @@
+diff --git a/include/Client.h b/include/Client.h
+index 6f29bd5..b5d8b05 100644
+--- a/include/Client.h
++++ b/include/Client.h
+@@ -16,6 +16,7 @@
+ // You should have received a copy of the GNU Affero General Public License
+ // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
++// HCODER modification 2026-10-13: cancellable resource-sync socket lifetime.
+ #pragma once
+ 
+ #include <atomic>
+@@ -71,6 +72,9 @@ public:
+     void SetTCPSock(ip::tcp::socket&& CSock) { mSocket = std::move(CSock); }
+     // Returns true only for the thread that actually performs socket shutdown/close.
+     [[nodiscard]] bool Disconnect(std::string_view Reason);
++#if defined(BEAMMP_LINUX)
++    [[nodiscard]] int DuplicateTransferSocket();
++#endif
+     bool IsDisconnected() const {
+         return mDisconnectState.load(std::memory_order_acquire) != EDisconnectState::Connected;
+     }
+@@ -96,6 +100,8 @@ public:
+     [[nodiscard]] bool IsGuest() const { return mIsGuest; }
+     void SetIsGuest(bool NewIsGuest) { mIsGuest = NewIsGuest; }
+     void SetIsSynced(bool NewIsSynced) { mIsSynced = NewIsSynced; }
++    bool IsResourceSyncActive() const { return mResourceSyncActive.load(std::memory_order_acquire); }
++    void SetResourceSyncActive(bool Active) { mResourceSyncActive.store(Active, std::memory_order_release); }
+     void SetIsSyncing(bool NewIsSyncing) { mIsSyncing = NewIsSyncing; }
+     void EnqueuePacket(const std::vector<uint8_t>& Packet);
+     [[nodiscard]] std::queue<std::vector<uint8_t>>& MissedPacketQueue() { return mPacketsSync; }
+@@ -132,6 +138,8 @@ private:
+     SparseArray<std::string> mVehiclePosition;
+     std::string mName = "Unknown Client";
+     // Once disconnect starts, this client is terminal and its socket must be treated as dead.
++    std::atomic_bool mResourceSyncActive { false };
++    mutable std::mutex mSocketLifetimeMutex;
+     std::atomic<EDisconnectState> mDisconnectState { EDisconnectState::Connected };
+     ip::tcp::socket mSocket;
+     ip::udp::endpoint mUDPAddress {};
+diff --git a/src/Client.cpp b/src/Client.cpp
+index 7d21594..99a68f7 100644
+--- a/src/Client.cpp
++++ b/src/Client.cpp
+@@ -16,12 +16,16 @@
+ // You should have received a copy of the GNU Affero General Public License
+ // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
++// HCODER modification 2026-10-13: retain transfer descriptor during disconnect.
+ #include "Client.h"
+ 
+ #include "CustomAssert.h"
+ #include "TServer.h"
+ #include <memory>
+ #include <optional>
++#if defined(BEAMMP_LINUX)
++#include <fcntl.h>
++#endif
+ 
+ void TClient::DeleteCar(int Ident) {
+     // TODO: Send delete packets
+@@ -84,6 +88,7 @@ bool TClient::Disconnect(std::string_view Reason) {
+     }
+ 
+     beammp_debugf("Disconnecting client {} for reason: {}", GetID(), Reason);
++    std::lock_guard SocketLifetime(mSocketLifetimeMutex);
+     boost::system::error_code ec;
+     if (mSocket.is_open()) {
+         mSocket.shutdown(socket_base::shutdown_both, ec);
+@@ -102,6 +107,16 @@ bool TClient::Disconnect(std::string_view Reason) {
+     return true;
+ }
+ 
++#if defined(BEAMMP_LINUX)
++int TClient::DuplicateTransferSocket() {
++    // Keep a stable descriptor while shutdown cancels the same socket. Never
++    // let sendfile target a descriptor reused by a Lua/database file write.
++    std::lock_guard SocketLifetime(mSocketLifetimeMutex);
++    if (IsDisconnected() || !mSocket.is_open()) return -1;
++    return ::fcntl(mSocket.native_handle(), F_DUPFD_CLOEXEC, 0);
++}
++#endif
++
+ void TClient::SetCarPosition(int Ident, const std::string& Data) {
+     std::unique_lock lock(mVehiclePositionMutex);
+     mVehiclePosition[size_t(Ident)] = Data;
+diff --git a/src/TNetwork.cpp b/src/TNetwork.cpp
+index 003c94b..bfde782 100644
+--- a/src/TNetwork.cpp
++++ b/src/TNetwork.cpp
+@@ -16,6 +16,7 @@
+ // You should have received a copy of the GNU Affero General Public License
+ // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
++// HCODER modification 2026-10-13: cancel raw transfers before shutdown, no blocked kick.
+ #include "TNetwork.h"
+ #include "Client.h"
+ #include "Common.h"
+@@ -550,6 +551,10 @@ std::shared_ptr<TClient> TNetwork::Authentication(TConnection&& RawConnection) {
+ 
+     if (!NotAllowed && !NotAllowedWithReason) {
+         beammp_info("Identification success");
++        // Mark BEFORE exposing the client: file bytes are not framed packets.
++        // This remains true through resource/map synchronization until H completes.
++        // A kick must abort the socket, never append a reason inside a ZIP stream.
++        Client->SetResourceSyncActive(true);
+         mServer.InsertClient(Client);
+         TCPClient(Client);
+     }
+@@ -682,6 +687,15 @@ std::vector<uint8_t> TNetwork::TCPRcv(TClient& c, bool WithTimeout) {
+ 
+ void TNetwork::ClientKick(TClient& c, const std::string& R) {
+     beammp_info("Client kicked: " + R);
++    // Closing a downloading socket cancels sendfile/reads without waiting for
++    // peer receive space. During server shutdown this applies to every client.
++    // Do not hide a SIGKILL or enlarge the game controller's grace period.
++    if (Application::IsShuttingDown() || c.IsResourceSyncActive()) {
++        DisconnectClient(c, "Kicked (resource sync or shutdown)");
++        return;
++    }
++    // Preserve the usual framed kick reason for normal connected players and
++    // authentication errors; it is not valid in the raw resource stream.
+     if (!TCPSend(c, StringToVector("K" + R))) {
+         beammp_debugf("tried to kick player '{}' (id {}), but was already disconnected", c.GetName(), c.GetID());
+     }
+@@ -1112,14 +1126,21 @@ void TNetwork::SendFileToClient(TClient& c, size_t Size, const std::string& Name
+         beammp_errorf("Failed to open mod '{}' for sending, error: {}", Name, std::strerror(errno));
+         return;
+     }
+-    // native handle, needed in order to make native syscalls with it
+-    int socket = c.GetTCPSock().native_handle();
++    // shutdown affects duplicate descriptors too; close/reuse cannot redirect IO.
++    int socket = c.DuplicateTransferSocket();
++    if (socket < 0) {
++        ::close(fd);
++        return;
++    }
++    auto CloseSocket = [](int* value) { ::close(*value); };
++    const std::unique_ptr<int, decltype(CloseSocket)> SocketLifetime(&socket, CloseSocket);
+ 
+     const auto ToSendTotal = Size;
+     size_t TotalSent = 0;
+-    while (TotalSent < ToSendTotal) {
++    while (TotalSent < ToSendTotal && !c.IsDisconnected()) {
+         off_t SysOffset = off_t(TotalSent);
+         const ssize_t SentNow = sendfile(socket, fd, &SysOffset, ToSendTotal - TotalSent);
++        if (c.IsDisconnected()) break; // requested cancellation, not an IO failure
+         if (SentNow > 0) {
+             TotalSent += size_t(SentNow);
+             continue;
+@@ -1267,6 +1288,7 @@ bool TNetwork::SyncClient(const std::weak_ptr<TClient>& c) {
+         return res;
+     }
+     LockedClient->SetIsSynced(true);
++    LockedClient->SetResourceSyncActive(false);
+     beammp_info(LockedClient->GetName() + (" is now synced!"));
+     return true;
+ }

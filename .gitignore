@@ -1,0 +1,6 @@
+/build/
+/out/
+/BeamMP-Server
+/build-result.json
+__pycache__/
+*.pyc

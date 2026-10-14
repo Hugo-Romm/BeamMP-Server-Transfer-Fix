@@ -1,0 +1,531 @@
+{
+  "upstream_repository": "https://github.com/BeamMP/BeamMP-Server",
+  "upstream_tag": "v3.9.3",
+  "upstream_commit": "54f49d81e255d6021f6ebe04c85c6ecad4c7cef8",
+  "vcpkg_baseline": "5bf0c55239da398b8c6f450818c9e28d36bf9966",
+  "ubuntu_digest": "sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55",
+  "tested_platform": "linux/arm64",
+  "tested_binary_sha256": "796d2a272aeb017f20e520d55964398d2fa3fac9e824c7e7ec0b94e101add417",
+  "patch_sha256": "5d209c9dc502ab0a1fa0990a87ba75ed24aaa1f6d913d148d46f781fa47a2e6b",
+  "static_packages": [
+    {
+      "Package": "vcpkg-cmake-config",
+      "Version": "2024-05-23",
+      "Architecture": "arm64-linux",
+      "Abi": "c50e5debaab8412e9b8fcc85a167cbad78793f3c487f061a7a7cb725b9bbd324"
+    },
+    {
+      "Package": "vcpkg-cmake",
+      "Version": "2024-04-23",
+      "Architecture": "arm64-linux",
+      "Abi": "327ac60d65a63ba21bd33f412ab1efda055d2306cd12e7e138630ace405a43e0"
+    },
+    {
+      "Package": "vcpkg-boost",
+      "Version": "2025-03-29",
+      "Architecture": "arm64-linux",
+      "Abi": "5d61fc0cded8f64c6a1c0ab62716052052fdb60a5a102aa8650892228f947fe3"
+    },
+    {
+      "Package": "boost-uninstall",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "57871e4ae57a983f6fbeecee02bb380404ecdc2cd7b94afec93850b8c99c77e0"
+    },
+    {
+      "Package": "boost-cmake",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "f5c5e16c866d4fbbfeba7eaf499779246363e8c0218221b4c8f0db42312b0cfc"
+    },
+    {
+      "Package": "boost-headers",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "e985cd245158f53888758495ceb9e8c10e6a89678994a8dfa69c8c3a106e4fe0"
+    },
+    {
+      "Package": "boost-config",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "bd5ce7d339968c77d6ac96f144f2f9e2fdb8463f2c95249e8b81651002fc424a"
+    },
+    {
+      "Package": "boost-assert",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "7db794a78df48e215b154b30ddeb3a6ce401195840552704b823b2ca807c3a5d"
+    },
+    {
+      "Package": "boost-throw-exception",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "d5f0eb2f715b2ace904a8776290ab535cea6bec265a3155433a69058d30c51e5"
+    },
+    {
+      "Package": "boost-static-assert",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "65d1373e73332034af4d09eab98d9230cee3e9c11c6a041a0c04a5348970c3ba"
+    },
+    {
+      "Package": "boost-core",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "dd582d72bd996fa6969a6cc4af261456a6fac07bd56a80c18b75a631570a4657"
+    },
+    {
+      "Package": "boost-smart-ptr",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "b9d0e8e8cf84f639d25b3f507bc61287789dccd7f47eb66106d112912fd5a234"
+    },
+    {
+      "Package": "boost-predef",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "b9a7b2e65709db755bde63ddcc78cac88d18b354dbe10478ee32bd4c8e55b072"
+    },
+    {
+      "Package": "boost-winapi",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "4ede168f3b5e3c389ced4579bc94956becd31340f407b71422c5d698ac8adfaf"
+    },
+    {
+      "Package": "boost-type-traits",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "773f835323956ee711020b693092bb73d138f4bf71607ffb924dbe7366c74344"
+    },
+    {
+      "Package": "boost-integer",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "f1a3a65baf45b96317b987841e368eb507a25a768228d471fcdef88405ee11cd"
+    },
+    {
+      "Package": "boost-pool",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "c4f1aeee147b16ba2be384932ca6332b3b85e7f910d9789e295b7f5c3fcfe174"
+    },
+    {
+      "Package": "boost-mp11",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "19a0e1e2d09c094e5739ff664e0a1cd028dfead8d0ce0a1ba46dcc469288343c"
+    },
+    {
+      "Package": "boost-context",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "5ae009b23b915ed36921d90b37365c97fbbdb1197ff12ab0af3342f81c01b55e"
+    },
+    {
+      "Package": "boost-preprocessor",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "50d74620498670600a622f27b6e65ec8048d93e9978f5d3c7e7da9a1aa3c2c3c"
+    },
+    {
+      "Package": "boost-io",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "eefbac8b450fcfe88cbf4970ef0d994f534f4c06915375ed79f6b910b3e80143"
+    },
+    {
+      "Package": "boost-utility",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "3bc0229b9b1efa368052368065b09f2393c6b1c44c5ccafde840ce4da3d331a5"
+    },
+    {
+      "Package": "boost-optional",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "8fbeb1d2b8a946aacd621e6ac9606e541cf59ba57852e08104cfe1a313b270b9"
+    },
+    {
+      "Package": "boost-mpl",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "af64d193e65b2f05afd2eba5f514902b0daf0624da1c6a6e42aee7af99d02879"
+    },
+    {
+      "Package": "boost-typeof",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "85b197bc7d455aeb11f7f108cc3c25fa90116c132c73eb4b75da216b38c610b6"
+    },
+    {
+      "Package": "boost-tuple",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "f974d3ff9891c988d18f48c50e75431ced24583e5f468ff5db08e85407f241af"
+    },
+    {
+      "Package": "boost-detail",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "fe2bb0ec94d289f3695a0e1b297f4b74986c9b85b148355ab2d42b4a4f78e2b3"
+    },
+    {
+      "Package": "boost-function-types",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "ae19653a5f7783e1b853fadcfa26404fb13ba0b4236690d36e2a651e293b21bb"
+    },
+    {
+      "Package": "boost-bind",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "e40bf8e7d2ec73cb0d3b46fa398412f8cfdda922a865bedfa693a829c6d63eff"
+    },
+    {
+      "Package": "boost-function",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "33a69c07e4e81477711220abf8913ab8524f68e6f114763af65c1788c5e3d818"
+    },
+    {
+      "Package": "boost-functional",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "0413f75183c86a2dcc7b422761aefa27e121a03baa1c09e1cf98eaa0fbf17d5a"
+    },
+    {
+      "Package": "boost-describe",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "855da3deadd8de292f8b946c251a7d324cf8fcec0feb0ba06d7eacbf7e0207da"
+    },
+    {
+      "Package": "boost-container-hash",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "ff5dbaef0735a406a790962c936c6e9da68f599df145fde463ad09fc09625ca5"
+    },
+    {
+      "Package": "boost-fusion",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "c84941c898070a803d0ddf6555d0ebae8180dc04ed22b9e6bca59db7843f3c1b"
+    },
+    {
+      "Package": "boost-concept-check",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "80fb0725cce0e44078f3701899f080481ac3ad54b51c7070380c1fa31349e38a"
+    },
+    {
+      "Package": "boost-iterator",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "cb60df1a14cbe0c28985d7cc94ed83f7c07a4480a34304a41793eff789a24366"
+    },
+    {
+      "Package": "boost-tokenizer",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "dd9ecd311eb104f498aa9d18dba57480347b5b44ec8ac1900c62929c2cf4b5a3"
+    },
+    {
+      "Package": "boost-regex",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "612f9a7e6a1681dfc026584a0501bcc64eeaaab3f48b710f70c38fd0d09d1d36"
+    },
+    {
+      "Package": "boost-conversion",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "90309cd01c93a8ded3103ed3248f3224ce4dffe2afcdf0e49ad2992ad225454a"
+    },
+    {
+      "Package": "boost-array",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "65a9c44b163d36c8b568492598d140aada565caf50f2284a537f649ab9a8019a"
+    },
+    {
+      "Package": "boost-range",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "fee8f954aec8d0f00c4e1b639a22a15e465244e0210f64e3a9b94d0ce3455b3d"
+    },
+    {
+      "Package": "boost-numeric-conversion",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "b745e14e7137a43426c12e8dc4af1f7279652471e07ddea5fd294c90b9dd8c13"
+    },
+    {
+      "Package": "boost-move",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "14e74d40e4f80df63e2ed2214a7ca3d577c7659059917caf726f14a815a2f5ab"
+    },
+    {
+      "Package": "boost-intrusive",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "4601dbd9150b70027cb969e1491eedbe53821e5058a9f21386a3bff3b8225f8e"
+    },
+    {
+      "Package": "boost-container",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "c7b7d9061f5a4b287d5a782f2756503d4c9342135d38f2b191ae25b98df6a82f"
+    },
+    {
+      "Package": "boost-lexical-cast",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "24e1b858506958e6a846b2a2a3b68fdbe45b1eb0625851cedd80567c2c796096"
+    },
+    {
+      "Package": "boost-unordered",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "ddc02cf18ffd2d9c6df6938f672e197e8359bd324adc6284ee13fd30323a4fcc"
+    },
+    {
+      "Package": "boost-exception",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "4f129ba3e475d010e9048b555f3074224563c7b99f40328200737654125cb1ed"
+    },
+    {
+      "Package": "boost-algorithm",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "d7ba3ac6826c4d17148175e3de429cd27b7cc98c5392d6026823d4988a2a835a"
+    },
+    {
+      "Package": "boost-date-time",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "991ea68be7bcf1b8626324e69f1c14827d70d98235f69a21354b66282031ddd6"
+    },
+    {
+      "Package": "boost-variant2",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "2ce119e1d06108437951b60502a4ae26af6bd1c21f7cd7fa55d4c5d0a233001b"
+    },
+    {
+      "Package": "boost-system",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "3f71bfe02f89ed59e6f83e19c75957798284460e12eb05011e06b1a6c7b2a22a"
+    },
+    {
+      "Package": "boost-align",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "75f114dbc436fcc82f286c11f13dbabb9af090e795e70cbc90e07a8120f9aa1a"
+    },
+    {
+      "Package": "boost-asio",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "bbfdb4027dd28c1ac2ff5686422cda6f54761d30744e9fe82cd0973063b1b326"
+    },
+    {
+      "Package": "boost-asio",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "boost-asio",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "boost-type-index",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "b23569a1e14de9b0c1a850ca53355b0f64fc327694484990d72d5b28c9cb1f0f"
+    },
+    {
+      "Package": "boost-variant",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "aaeca5aea1d3c9082c95754f49f33aa41d79862b112c848da9b912962a883e1c"
+    },
+    {
+      "Package": "boost-ratio",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "21772693a8d6a606c62b0abbc5e2137ceef9f4e70aa132c6f9b99d6c02f4ae17"
+    },
+    {
+      "Package": "boost-chrono",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "cd0f92a887222058cef168a1b05fb79b03ca29e8e1f3e6853a637fed17447d32"
+    },
+    {
+      "Package": "boost-atomic",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "7c9cec0849cf939ccc1db9577d002ce13517daf720d8ac7b92c0673017504bbd"
+    },
+    {
+      "Package": "boost-thread",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "bf8382c3aeb6fae3fb28637a9ab96ede2f74e97b6646c5e26e95903794e94b7e"
+    },
+    {
+      "Package": "boost-proto",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "7990bea7dc19c32e50932314af2058b740d71a0d1a55a61fd444475829b94ece"
+    },
+    {
+      "Package": "boost-phoenix",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "bcfe31189facf595f130e024e99fd897f32d00d27e8d47ac3a960c65d75f2693"
+    },
+    {
+      "Package": "boost-endian",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "03c7c0f8ec786a2ef8243d96e37c3328697606f00fe26a9decd33a00fed69915"
+    },
+    {
+      "Package": "boost-spirit",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "c4c035736ec15784a6269cd036b856f4a51d63cc464a51fa3241acdfe5c0cf84"
+    },
+    {
+      "Package": "boost-uuid",
+      "Version": "1.89.0",
+      "Architecture": "arm64-linux",
+      "Abi": "948b1645ec9119526ac72efc2057121f46feb9d30cd5e3196522b6fd8a3eb46a"
+    },
+    {
+      "Package": "brotli",
+      "Version": "1.2.0",
+      "Architecture": "arm64-linux",
+      "Abi": "85c4b557996cb2c7a8cec6f9967a11f5138397125c1edbf73c96e2491ba0f9e7"
+    },
+    {
+      "Package": "cpp-httplib",
+      "Version": "0.27.0",
+      "Architecture": "arm64-linux",
+      "Abi": "1da8604972570899ccddf6c22fcc0e927c4396ca94fc5648d9099b26ecd59bfa"
+    },
+    {
+      "Package": "cpp-httplib",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "vcpkg-cmake-get-vars",
+      "Version": "2025-05-29",
+      "Architecture": "arm64-linux",
+      "Abi": "ce0cfa161a01ca13f1541d33f165d5747d1a45d2e19c8997d9114f4f2969e663"
+    },
+    {
+      "Package": "openssl",
+      "Version": "3.6.0",
+      "Architecture": "arm64-linux",
+      "Abi": "01a8bd0467fe1b9e3be706dde2403b2dbcb7ad956ac29afb3e0c9aa439c3dd0e"
+    },
+    {
+      "Package": "zlib",
+      "Version": "1.3.1",
+      "Architecture": "arm64-linux",
+      "Abi": "fc07c872fba5bd5c9edfa24ad2fdcebd93750f906435ed9759572914e137aee6"
+    },
+    {
+      "Package": "curl",
+      "Version": "8.17.0",
+      "Architecture": "arm64-linux",
+      "Abi": "acada47c88d762e331e1d32f00a4f4e5a2c2831a41b4a1fd39a78431d7e81147"
+    },
+    {
+      "Package": "curl",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "curl",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "curl",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "doctest",
+      "Version": "2.4.12",
+      "Architecture": "arm64-linux",
+      "Abi": "e3fe9693504aa206609037b8d3f888ac805982e58cab6d4064d373b912a29bbd"
+    },
+    {
+      "Package": "fmt",
+      "Version": "12.1.0",
+      "Architecture": "arm64-linux",
+      "Abi": "f73305a434e555638351001dbaba7abd88e6dffbacb6ed1b3f590aae9e315a3c"
+    },
+    {
+      "Package": "bzip2",
+      "Version": "1.0.8",
+      "Architecture": "arm64-linux",
+      "Abi": "3e334c7dc81e0ebb25e05eb7692e02351e94bd9d455f020d8b6c0128b5165539"
+    },
+    {
+      "Package": "bzip2",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "libzip",
+      "Version": "1.11.4",
+      "Architecture": "arm64-linux",
+      "Abi": "8564d2ada8be28e3605ca198ad95db1519155a69836f155275660142a0f12bce"
+    },
+    {
+      "Package": "libzip",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "libzip",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "libzip",
+      "Architecture": "arm64-linux"
+    },
+    {
+      "Package": "lua",
+      "Version": "5.3.5",
+      "Architecture": "arm64-linux",
+      "Abi": "8baec0fe7e092a21aaa29640159089721b7f5e9145e1ceec8b260ea38d577786"
+    },
+    {
+      "Package": "nlohmann-json",
+      "Version": "3.12.0",
+      "Architecture": "arm64-linux",
+      "Abi": "aca520b8cbe3ad56bf8062e2a1b5e6f5c74305cbef8ed5bad9fc04436ac54b91"
+    },
+    {
+      "Package": "rapidjson",
+      "Version": "2025-02-26",
+      "Architecture": "arm64-linux",
+      "Abi": "e238081cc5baa8ab0097edb23e42dac4c83d6a42086c722bdd267f02c1e2334a"
+    },
+    {
+      "Package": "sol2",
+      "Version": "3.3.1",
+      "Architecture": "arm64-linux",
+      "Abi": "ff2b49731cf131bf45e76300400f76aa3671a4ec5c1ec3a81835d691f140ca63"
+    }
+  ],
+  "patched_sources": {
+    "include/Client.h": "d0b3ba909092d8ecd33e5b3154f605acacc5475db84caaf915c2eef8d8379f86",
+    "src/Client.cpp": "d937849a4a6a5ce9e8217026621ea12fee003cb75bef9949ad2000274c9224cf",
+    "src/TNetwork.cpp": "18ee3a3d25186934e889e13a2fbe0ab8c14ab8ef2c9c18138f1aaa5252bef1e0"
+  }
+}
