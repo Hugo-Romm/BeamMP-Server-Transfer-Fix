@@ -1,0 +1,87 @@
+{
+  "schema": "beammp-native-acceptance-v1",
+  "test_date": "2026-10-13",
+  "timezone": "America/Asuncion",
+  "documentation_reconciliation_date": "2026-10-14",
+  "recipe_source_commit": "dd476f2c5d52ed5198993300e9f1d33ac75ae5e5",
+  "upstream_commit": "54f49d81e255d6021f6ebe04c85c6ecad4c7cef8",
+  "platform": "Linux ARM64; Ubuntu 24.04; GCC 13; Release; arm64-linux",
+  "recipe": {
+    "dockerfile": "Dockerfile.native",
+    "dockerfile_sha256": "6b6506218de91ab51b816ca47c5c0f7ebf47556350200a6951efe1eb81ad43b4",
+    "script": "tools/compile.sh",
+    "script_sha256": "2817c27aa0d34833a84de11492e8d50b605c6b996ddbe6b02c28a63b09c0994e",
+    "target_tested": "compile",
+    "private_runtime_image_used_for_compilation": false,
+    "compiler_image_id": "sha256:6b1066de11e779a5be5d6344134d371ca24a6f90b10ceae3a4a1751a603b6354",
+    "cold_compiler_stage_completed": true
+  },
+  "binaries": {
+    "original_deployed_sha256": "796d2a272aeb017f20e520d55964398d2fa3fac9e824c7e7ec0b94e101add417",
+    "independent_public_recipe_rebuild_sha256": "01d8e669ab880f1054e71456416d22f1467a765c6afb92091b99910d263de26d",
+    "rebuild_replaced_production": false,
+    "bit_identical_rebuild_claimed": false
+  },
+  "completion_evidence": {
+    "ssh_output_collector": "timed out; not recorded as a successful tool invocation",
+    "subsequent_checks": [
+      "compiled image existed",
+      "/out/build-result.json recorded the exact upstream and rebuilt ELF hash",
+      "exported ELF hash independently matched",
+      "the rebuilt ELF subsequently passed the two native protocol cases below"
+    ]
+  },
+  "tests": [
+    {
+      "case": "stalled-download-stop",
+      "input_result_sha256": "39ebaf4607a25d1eae13943b0d3ae5c6f813570fa9c7b13c026fe78d16eb016a",
+      "elf_sha256": "01d8e669ab880f1054e71456416d22f1467a765c6afb92091b99910d263de26d",
+      "resource_bytes": 40041297,
+      "initial_bytes_received": 65536,
+      "transfer_stalled": true,
+      "native_send_queue_bytes": 1792080,
+      "total_observed_seconds": 1,
+      "unit_exit_code": 0,
+      "final_shutdown_code": 0,
+      "final_shutdown_hook": true,
+      "final_shutdown_confirmed": true,
+      "final_shutdown_forced": false
+    },
+    {
+      "case": "normal-download-restart",
+      "input_result_sha256": "2ce5e6108bd5191a6dec877d67009cec592739d877d89e5292d466ff565ec96a",
+      "elf_sha256": "01d8e669ab880f1054e71456416d22f1467a765c6afb92091b99910d263de26d",
+      "resource_bytes": 40041297,
+      "initial_bytes_received": 65536,
+      "transfer_stalled": false,
+      "native_send_queue_bytes": 0,
+      "total_observed_seconds": 13.709,
+      "unit_exit_code": 0,
+      "final_shutdown_code": 0,
+      "final_shutdown_hook": true,
+      "final_shutdown_confirmed": true,
+      "final_shutdown_forced": false,
+      "complete_download_bytes": 40041297,
+      "download_sha256_confirmed": true,
+      "one_replacement_run_confirmed": true,
+      "maintenance_phase": "complete",
+      "publication": "confirmed"
+    }
+  ],
+  "limits": [
+    "Existing evidence only; no recompilation or production changes during this documentary reconciliation.",
+    "Native protocol client, not a human BeamNG session.",
+    "Authentication and Discord were fixtures; private integration fixture used for stop/restart and recovery/Git checks.",
+    "Public compilation did not require the private runtime; reproducing all private integration tests is a separate scope.",
+    "One 40,041,297-byte resource, not the whole 37-package deployment.",
+    "Compiler stage and extraction from it were exercised; the final scratch exporter stage was not separately cold-tested.",
+    "Observed totals include deliberate waits and maintenance, not just native shutdown latency.",
+    "No overnight stability, universal crash fix or bit-for-bit binary reproducibility claimed."
+  ],
+  "publication_history": {
+    "initial_sources_and_tag": "dd476f2c5d52ed5198993300e9f1d33ac75ae5e5",
+    "cold_build_documentation": "5f7dfb26956d4ebf677a3e99dfd2f3cc332cb2fa",
+    "subsequent_rebuild_test_documentation": "86f940fa36a7244ce4b2599a5b0fa66eefee19dd",
+    "initial_tag_was_not_moved": true
+  }
+}

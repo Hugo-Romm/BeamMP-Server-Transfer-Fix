@@ -91,13 +91,33 @@ Source/patch hashes were checked by the recipe; this independently rebuilt
 artifact is **not** the production ELF identified above. The scratch final stage
 is for file export, not a runnable server image; `docker create` supplies an
 explicit command and is not started. The compiler stage and file extraction were
-actually exercised. Network/source availability remains an external requirement.
+actually exercised using `--target compile`. The final scratch exporter stage
+was not separately cold-tested. Network/source availability remains an external
+requirement; this distinction does not claim byte-identical rebuilds.
 The rebuilt artifact additionally passed isolated stalled Stop (1.000 s) and
 full-download Restart (13.709 s), exit 0 with shutdown hooks, no forced kill,
 verified download hash and exactly one replacement run. A timeout of the SSH
 output collector at the end of compilation was not treated as a successful
 tool invocation: completion was verified in the produced image/output files and
 these subsequent native tests. The disposable compiler image was then removed.
+
+### Acceptance chronology and record
+
+The cold compiler-stage test used the recipe from source commit
+`dd476f2c5d52ed5198993300e9f1d33ac75ae5e5`. The immutable tag
+`v3.9.3-hcoder.1` was created **before** that test; its historical README therefore
+says the separate cold build was not yet tested. That statement describes the
+release's state at publication, not the later acceptance result. The tag and
+source history were not rewritten. Later documentation commits `5f7dfb2` and
+`86f940f` recorded the cold build and the two rebuilt-ELF tests.
+
+[provenance/acceptance.json](provenance/acceptance.json) consolidates that existing
+evidence: recipe/script hashes, source/platform, both distinct ELF hashes,
+collector timeout, measured cases and limits. No additional compilation or
+production test was performed to reconcile this documentation. The public build
+did not require our private runtime image; the subsequent stop/restart tests did
+use our private integration fixture. Do not mistake those tests for a complete
+public end-to-end harness or a new human BeamNG acceptance.
 
 To apply only the patch to an existing clean upstream checkout:
 
