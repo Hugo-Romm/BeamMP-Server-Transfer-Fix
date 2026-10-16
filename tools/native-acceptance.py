@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory(prefix='beammp-native-c38-') as tmp:
     digest=hashlib.sha256(asset.read_bytes()).hexdigest()
     plugin=root/'Resources/Server/Probe';plugin.mkdir(parents=True)
     (plugin/'main.lua').write_text('''function ProbeInit() print('C38_INIT '..tostring(MP.GetServerVersion())) end
-function ProbeConsole(line) if line=='c38 health' then local v=MP.GetServerVersion(); print('C38_HEALTH '..tostring(v.major)..'.'..tostring(v.minor)..'.'..tostring(v.patch)..' '..tostring(type(MP.GetPlayers()))); return 1 end end
+function ProbeConsole(line) if line=='c38 health' then local a,b,c=MP.GetServerVersion(); print('C38_HEALTH '..tostring(a)..'.'..tostring(b)..'.'..tostring(c)..' '..tostring(type(MP.GetPlayers()))); return 1 end end
 function ProbeShutdown() print('C38_SHUTDOWN') end
 MP.RegisterEvent('onInit','ProbeInit');MP.RegisterEvent('onConsoleInput','ProbeConsole');MP.RegisterEvent('onShutdown','ProbeShutdown')
 ''')
