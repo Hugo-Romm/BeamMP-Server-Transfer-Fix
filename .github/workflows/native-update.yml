@@ -1,0 +1,44 @@
+name: Finite ARM64 native update
+run-name: native-${{ inputs.operation }}
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        required: true
+        type: string
+      upstream_commit:
+        required: true
+        type: string
+      release_id:
+        required: true
+        type: string
+      operation:
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: native-${{ inputs.upstream_tag }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Build exact official source, preserve patch, test native transport
+        env:
+          UPSTREAM_TAG: ${{ inputs.upstream_tag }}
+          UPSTREAM_COMMIT: ${{ inputs.upstream_commit }}
+          UPSTREAM_RELEASE_ID: ${{ inputs.release_id }}
+          UPDATE_OPERATION: ${{ inputs.operation }}
+          GH_TOKEN: ${{ github.token }}
+          HCODER_CI_ISOLATED: '1'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential cmake ninja-build pkg-config unzip zip curl git autoconf automake libtool python3 openssl liblua5.3-0
+          python3 tools/release-build.py build
+          sudo --preserve-env=HCODER_CI_ISOLATED,GITHUB_WORKSPACE python3 tools/native-acceptance.py out/BeamMP-Server out/build-result.json
+          python3 tools/release-build.py publish
