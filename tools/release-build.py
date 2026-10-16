@@ -2,7 +2,7 @@
 Finite official-stable ARM64 builder. Only public native source enters releases.
 Never called by a schedule; explicitly dispatched by one BeamMP update operation.
 """
-import hashlib,json,os,pathlib,re,shutil,subprocess,sys,tarfile,time,urllib.request
+import hashlib,http.client,json,os,pathlib,re,shutil,subprocess,sys,tarfile,time,urllib.request,urllib.parse
 ROOT=pathlib.Path(__file__).resolve().parent.parent;OUT=ROOT/'out';SRC=ROOT/'upstream'
 REPO='Hugo-Romm/BeamMP-Server-Transfer-Fix';OFFICIAL='BeamMP/BeamMP-Server'
 def sha(p):
@@ -56,7 +56,7 @@ def build():
         for name in ['tools','patches','Dockerfile.native','LICENSE','NOTICES.md']:
             if (ROOT/name).exists():tar.add(ROOT/name,arcname='recipe/'+name)
     assert archive.stat().st_size<268435456
-    manifest={'format':'hcoder-native-release-v1','upstreamVersion':tag[1:],'version':tag[1:]+'-hcoder.c38.1','upstreamTag':tag,'upstreamCommit':commit,'officialReleaseId':r['id'],'officialAsset':{k:asset[k] for k in ['id','name','size','digest','browser_download_url']},'architecture':'aarch64','sha256':sha(elf),'bytes':elf.stat().st_size,'patch_sha256':sha(patch),'builderCommit':os.environ['GITHUB_SHA'],'builderRun':os.environ['GITHUB_RUN_ID'],'submodules':subs.splitlines(),'source_sha256':sha(archive),'license':'AGPL-3.0-only','url':'https://github.com/'+REPO+'/releases/tag/'+tag+'-hcoder.c38.1'}
+    manifest={'format':'hcoder-native-release-v1','upstreamVersion':tag[1:],'version':tag[1:]+'-hcoder.c38.1','upstreamTag':tag,'upstreamCommit':commit,'officialReleaseId':r['id'],'officialAsset':{k:asset[k] for k in ['id','name','size','digest','browser_download_url']},'architecture':'aarch64','sha256':sha(elf),'bytes':elf.stat().st_size,'patch_sha256':sha(patch),'builderCommit':os.environ['GITHUB_SHA'],'builderRun':os.environ['GITHUB_RUN_ID'],'submodules':subs.splitlines(),'source_sha256':sha(archive),'license':'AGPL-3.0-only','url':'https://github.com/'+REPO+'/releases/tag/'+tag+'-hcoder.c38.1','buildEnvironment':{'runnerImage':os.environ.get('ImageVersion'),'compiler':run('c++','--version').splitlines()[0],'packages':run('dpkg-query','-W','-f=${Package}=${Version}\n','build-essential','cmake','ninja-build','pkg-config','git','autoconf','automake','libtool','libc6','libstdc++6','liblua5.3-0','python3').splitlines()}}
     (OUT/'build-result.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print(json.dumps({'compiled':True,'version':manifest['version'],'sha256':manifest['sha256']}),flush=True)
 def publish():
@@ -64,11 +64,28 @@ def publish():
     release();tag=m['upstreamTag']+'-hcoder.c38.1'
     # A published release is immutable to this tool. Existing candidates must be inspected.
     r=api('repos/'+REPO+'/releases',{'tag_name':tag,'target_commitish':os.environ['GITHUB_SHA'],'name':m['version'],'draft':True,'prerelease':False,'body':'Exact official stable '+m['upstreamTag']+' + cancellable resource transfer patch. ARM64 native protocol/shutdown tests and complete corresponding sources attached. No private server code or player data.'})
-    for name in ['BeamMP-Server','build-result.json','corresponding-source.tar.gz']:
-        f=OUT/name;data=f.read_bytes();url=r['upload_url'].split('{')[0]+'?name='+name
-        req=urllib.request.Request(url,data,method='POST',headers={'User-Agent':'HCoder-native-builder','Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/octet-stream'})
-        with urllib.request.urlopen(req,timeout=180) as response:uploaded=json.load(response)
-        if uploaded['size']!=len(data):raise RuntimeError('Incomplete release asset upload')
-    api('repos/'+REPO+'/releases/'+str(r['id']),{'draft':False},method='PATCH')
+    published=False
+    try:
+        for name in ['BeamMP-Server','build-result.json','corresponding-source.tar.gz']:
+            f=OUT/name;url=urllib.parse.urlsplit(r['upload_url'].split('{')[0]+'?name='+name)
+            assert url.scheme=='https' and url.hostname=='uploads.github.com'
+            conn=http.client.HTTPSConnection(url.hostname,timeout=180)
+            try:
+                conn.putrequest('POST',url.path+'?'+url.query)
+                for key,value in {'User-Agent':'HCoder-native-builder','Authorization':'Bearer '+os.environ['GH_TOKEN'],'Content-Type':'application/octet-stream','Content-Length':str(f.stat().st_size)}.items():conn.putheader(key,value)
+                conn.endheaders()
+                with f.open('rb')as stream:
+                    for block in iter(lambda:stream.read(262144),b''):conn.send(block)
+                response=conn.getresponse();body=response.read(1048576)
+                if response.status!=201:raise RuntimeError('Native asset upload HTTP '+str(response.status))
+                uploaded=json.loads(body)
+                if uploaded['size']!=f.stat().st_size or uploaded.get('digest')!='sha256:'+sha(f):raise RuntimeError('Incomplete/corrupt release asset upload')
+            finally:conn.close()
+        api('repos/'+REPO+'/releases/'+str(r['id']),{'draft':False},method='PATCH');published=True
+    finally:
+        if not published:
+            # Only this invocation's incomplete draft, never a historical release.
+            try:api('repos/'+REPO+'/releases/'+str(r['id']),method='DELETE')
+            except Exception:pass
     print(json.dumps({'published':True,'tag':tag,'release':r['id'],'sha256':m['sha256']}))
 if __name__=='__main__':{'build':build,'publish':publish}[sys.argv[1]]()

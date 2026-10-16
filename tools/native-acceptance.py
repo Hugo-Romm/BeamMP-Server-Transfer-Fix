@@ -34,10 +34,29 @@ with tempfile.TemporaryDirectory(prefix='beammp-native-c38-') as tmp:
     with zipfile.ZipFile(asset,'w',compression=zipfile.ZIP_STORED) as z:
         with z.open('fixture.bin','w') as f:
             for _ in range(256):f.write(os.urandom(65536))
-    digest=hashlib.sha256(asset.read_bytes()).hexdigest()
+    h=hashlib.sha256()
+    with asset.open('rb')as stream:
+        for block in iter(lambda:stream.read(262144),b''):h.update(block)
+    digest=h.hexdigest()
     plugin=root/'Resources/Server/Probe';plugin.mkdir(parents=True)
-    (plugin/'main.lua').write_text('''function ProbeInit() print('C38_INIT '..tostring(MP.GetServerVersion())) end
-function ProbeConsole(line) if line=='c38 health' then local a,b,c=MP.GetServerVersion(); print('C38_HEALTH '..tostring(a)..'.'..tostring(b)..'.'..tostring(c)..' '..tostring(type(MP.GetPlayers()))); return 1 end end
+    (plugin/'main.lua').write_text('''function ProbeInit()
+ local names={'RegisterEvent','TriggerGlobalEvent','GetServerVersion','GetPlayers','GetPlayerIdentifiers','GetPlayerVehicles','GetPlayerName','GetPlayerCount','SendChatMessage','DropPlayer','RemoveVehicle','TriggerClientEvent','CreateEventTimer'}
+ for _,name in ipairs(names) do assert(type(MP[name])=='function','Required native Lua API missing: '..name) end
+ print('C38_INIT required-apis='..tostring(#names))
+end
+function ProbeConsole(line)
+ if line=='c38 health' then
+  local a,b,c=MP.GetServerVersion()
+  print('C38_HEALTH '..tostring(a)..'.'..tostring(b)..'.'..tostring(c)..' '..tostring(type(MP.GetPlayers())))
+  return 1
+ elseif line=='c38 chat' then
+  local players=MP.GetPlayers();local key=next(players);local id=tonumber(key);assert(id~=nil,'No native fixture player')
+  assert(type(MP.GetPlayerName(id))=='string','PlayerName must be string');assert(type(MP.GetPlayerIdentifiers(id))=='table','Identifiers must be table')
+  -- No vehicle was spawned: the native API deliberately returns nil for this case.
+  assert(MP.GetPlayerVehicles(id)==nil,'Empty player vehicles must be nil')
+  assert(MP.GetPlayerCount()>=1);MP.SendChatMessage(-1,'C38 native chat fixture');print('C38_CHAT_ACK');return 1
+ end
+end
 function ProbeShutdown() print('C38_SHUTDOWN') end
 MP.RegisterEvent('onInit','ProbeInit');MP.RegisterEvent('onConsoleInput','ProbeConsole');MP.RegisterEvent('onShutdown','ProbeShutdown')
 ''')
@@ -58,9 +77,11 @@ SendErrors = false
     outcomes=[];proc=None;peer=None
     try:
         for mode in ['complete-stop','stalled-stop']:
+            print('Native fixture case: '+mode,flush=True)
             rows=collections.deque(maxlen=500);proc=subprocess.Popen([str(elf)],cwd=root,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
             threading.Thread(target=lambda:[rows.append(line.rstrip()) for line in proc.stdout],daemon=True).start()
             wait(lambda:any('ALL SYSTEMS STARTED SUCCESSFULLY' in x for x in rows),30,rows)
+            assert any('C38_INIT required-apis=13' in x for x in rows),list(rows)[-20:]
             proc.stdin.write('c38 health\n');proc.stdin.flush();wait(lambda:any('C38_HEALTH '+version+' table' in x for x in rows),10,rows)
             peer=socket.socket();peer.settimeout(15)
             if mode.startswith('stalled'):peer.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,4096)
@@ -78,7 +99,7 @@ SendErrors = false
                 return exact(n)
             peer.sendall(b'C');send(b'VC2.7');assert packet()==b'A';send(b'isolated-client-key');assert packet().startswith(b'P')
             send(b'fC38Fixture.zip');assert packet()==b'AG'
-            first=exact(65536);verified=False;backpressure=False
+            first=exact(65536);verified=False;backpressure=False;chat=False
             if mode.startswith('complete'):
                 h=hashlib.sha256(first);remaining=asset.stat().st_size-len(first)
                 while remaining:
@@ -86,6 +107,11 @@ SendErrors = false
                 assert h.hexdigest()==digest;verified=True
                 send(b'Done');assert packet().startswith(b'U');assert packet().startswith(b'M');send(b'H')
                 wait(lambda:any('is now synced' in x for x in rows),10,rows)
+                proc.stdin.write('c38 chat\n');proc.stdin.flush();wait(lambda:any('C38_CHAT_ACK' in x for x in rows),5,rows)
+                for _ in range(8):
+                    received=packet()
+                    if b'C38 native chat fixture' in received:chat=True;break
+                assert chat,'Native Lua chat was not received by the protocol client'
             else:
                 def queued():
                     for file in ['tcp','tcp6']:
@@ -94,9 +120,14 @@ SendErrors = false
                             if a[1].endswith(':785E') and a[3]=='01' and int(a[4].split(':')[0],16)>0:return True
                     return False
                 backpressure=bool(wait(queued,5,rows))
-            start=time.monotonic();proc.stdin.write('exit\n');proc.stdin.flush();code=proc.wait(timeout=15);elapsed=time.monotonic()-start
+            # Match the real Unit transport: native exit + EOF, not an open pipe
+            # that can keep the native console reader thread alive during teardown.
+            start=time.monotonic();proc.stdin.write('exit\n');proc.stdin.flush();proc.stdin.close()
+            try:code=proc.wait(timeout=15)
+            except subprocess.TimeoutExpired:raise RuntimeError('Native stop deadline '+mode+': '+'\n'.join(list(rows)[-35:]))
+            elapsed=time.monotonic()-start
             assert code==0 and any('C38_SHUTDOWN' in x for x in rows),list(rows)[-20:]
-            outcomes.append({'case':mode,'code':code,'native_shutdown_hook':True,'stop_seconds':round(elapsed,3),'resource_sha256_verified':verified,'demonstrated_tx_backpressure':backpressure,'Lua_health_version':version,'protocol':'VC2.7'})
+            outcomes.append({'case':mode,'code':code,'native_shutdown_hook':True,'stdin_exit_and_EOF':True,'stop_seconds':round(elapsed,3),'resource_sha256_verified':verified,'demonstrated_tx_backpressure':backpressure,'Lua_health_version':version,'required_Lua_API_functions':13,'actual_Lua_chat_to_client':chat,'protocol':'VC2.7'})
             peer.close();peer=None;proc=None
         m['tests']={'passed':True,'actual_native':True,'architecture':os.uname().machine,'cases':outcomes,'authentication':'isolated TLS fixture','Discord':'not tested in public native runner','BeamNG_human_client':False}
         manifest.write_text(json.dumps(m,indent=2)+'\n');print(json.dumps(m['tests']),flush=True)
