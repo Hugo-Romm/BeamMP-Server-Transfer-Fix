@@ -14,7 +14,7 @@ test "$(git -C vcpkg rev-parse HEAD)" = 5bf0c55239da398b8c6f450818c9e28d36bf9966
 test "$(git -C deps/commandline rev-parse HEAD)" = 04952e4811e7d44708e64986bbc82fdc3485c800
 test "$(git -C deps/toml11 rev-parse HEAD)" = f33ca743fb105bf54293cc822f56cf2794d15bf2
 if [[ $(git -C vcpkg rev-parse --is-shallow-repository) == true ]];then git -C vcpkg fetch --unshallow --filter=blob:none;fi
-if git diff --quiet -- include/Client.h src/Client.cpp src/TNetwork.cpp;then
+if git diff --quiet -- include/Client.h src/Client.cpp src/TNetwork.cpp include/HcodeRMapPermit.h;then
  git apply --check /recipe/native-transfer.patch
  git apply /recipe/native-transfer.patch
 else git apply --reverse --check /recipe/native-transfer.patch;fi

@@ -1,11 +1,15 @@
-# BeamMP Server — cancellable resource transfers
+# BeamMP Server â€” cancellable resource transfers
 
 An **unofficial, narrowly scoped modification of BeamMP Server 3.9.3**, maintained
 by Hugo-Romm. This repository contains the complete upstream server source tree
-with three modified files, the standalone patch, build instructions, dependency
+with the integrated patches, build instructions, dependency
 provenance and license notices. It is not the official BeamMP release.
 
-## Problem and change
+## HcodeR Map
+
+After an accepted connection synchronizes its resources, a server configured for HcodeR Map signs a short-lived map grant with its own RSA key. Operators mount their release descriptor and signing key under /run/secrets. Players receive the encrypted map through the existing Config package. The combined patch for this build is in patches/hcoder-native.patch.
+
+## Cancellable resource transfers
 
 On Linux, a resource download uses `sendfile`. If an authenticated client stops
 draining its receive buffer, the server's send queue can fill. The original

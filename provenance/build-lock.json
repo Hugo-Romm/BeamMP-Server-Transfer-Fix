@@ -6,7 +6,7 @@
   "ubuntu_digest": "sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55",
   "tested_platform": "linux/arm64",
   "tested_binary_sha256": "796d2a272aeb017f20e520d55964398d2fa3fac9e824c7e7ec0b94e101add417",
-  "patch_sha256": "5d209c9dc502ab0a1fa0990a87ba75ed24aaa1f6d913d148d46f781fa47a2e6b",
+  "patch_sha256": "5ffe196d1bfcd4e598f82bc95007528243e991e939388fb3cdc8f01a09e9be57",
   "static_packages": [
     {
       "Package": "vcpkg-cmake-config",
@@ -526,6 +526,7 @@
   "patched_sources": {
     "include/Client.h": "d0b3ba909092d8ecd33e5b3154f605acacc5475db84caaf915c2eef8d8379f86",
     "src/Client.cpp": "d937849a4a6a5ce9e8217026621ea12fee003cb75bef9949ad2000274c9224cf",
-    "src/TNetwork.cpp": "18ee3a3d25186934e889e13a2fbe0ab8c14ab8ef2c9c18138f1aaa5252bef1e0"
+    "src/TNetwork.cpp": "9373701e099ef503b09fea7e8559049dc399364a34589966c7df6faade766596",
+    "include/HcodeRMapPermit.h": "e2d3b51e14391dd546dee77c116022f446c7a320fa230c49988626a67e65cdec"
   }
 }

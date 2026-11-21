@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++-13=13.3.0-6ubuntu2~24.04.1 python3=3.12.3-0ubuntu2.1 \
     ca-certificates=20260601~24.04.1 && rm -rf /var/lib/apt/lists/*
 COPY tools/compile.sh /recipe/compile.sh
-COPY patches/cancellable-transfer.patch /recipe/native-transfer.patch
+COPY patches/hcoder-native.patch /recipe/native-transfer.patch
 COPY provenance/build-lock.json /recipe/build-lock.json
 RUN bash /recipe/compile.sh /build /out
 FROM scratch

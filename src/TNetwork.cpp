@@ -18,6 +18,7 @@
 
 // HCODER modification 2026-10-13: cancel raw transfers before shutdown, no blocked kick.
 #include "TNetwork.h"
+#include "HcodeRMapPermit.h"
 #include "Client.h"
 #include "Common.h"
 #include "LuaAPI.h"
@@ -1023,7 +1024,18 @@ void TNetwork::OnConnect(const std::weak_ptr<TClient>& c) {
     LockedClient->SetMagic(buf);
     buf.insert(buf.begin(), 'U');
     (void)Respond(*LockedClient, buf, true);
-    (void)Respond(*LockedClient, StringToVector("M" + Application::Settings.getAsString(Settings::Key::General_Map)), true); // Send the Map on connect
+    try {
+        const auto configuredMap = Application::Settings.getAsString(Settings::Key::General_Map);
+        const auto request = HcodeRMapPermit::BuildMapRequest(configuredMap);
+        if (!Respond(*LockedClient, StringToVector("M" + request), true)) {
+            return;
+        }
+    } catch (const std::exception&) {
+        // A configured private map must not send a player into stock geometry.
+        beammp_error("Failed to issue the HcodeR map permit");
+        DisconnectClient(*LockedClient, "HcodeR map permit unavailable");
+        return;
+    }
     beammp_info(LockedClient->GetName() + " : Connected");
     LuaAPI::MP::Engine->ReportErrors(LuaAPI::MP::Engine->TriggerEvent("onPlayerJoining", "", LockedClient->GetID()));
 }

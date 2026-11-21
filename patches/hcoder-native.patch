@@ -1,0 +1,302 @@
+diff --git a/include/Client.h b/include/Client.h
+index 6f29bd5..b5d8b05 100644
+--- a/include/Client.h
++++ b/include/Client.h
+@@ -16,6 +16,7 @@
+ // You should have received a copy of the GNU Affero General Public License
+ // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
++// HCODER modification 2026-10-13: cancellable resource-sync socket lifetime.
+ #pragma once
+ 
+ #include <atomic>
+@@ -71,6 +72,9 @@ public:
+     void SetTCPSock(ip::tcp::socket&& CSock) { mSocket = std::move(CSock); }
+     // Returns true only for the thread that actually performs socket shutdown/close.
+     [[nodiscard]] bool Disconnect(std::string_view Reason);
++#if defined(BEAMMP_LINUX)
++    [[nodiscard]] int DuplicateTransferSocket();
++#endif
+     bool IsDisconnected() const {
+         return mDisconnectState.load(std::memory_order_acquire) != EDisconnectState::Connected;
+     }
+@@ -96,6 +100,8 @@ public:
+     [[nodiscard]] bool IsGuest() const { return mIsGuest; }
+     void SetIsGuest(bool NewIsGuest) { mIsGuest = NewIsGuest; }
+     void SetIsSynced(bool NewIsSynced) { mIsSynced = NewIsSynced; }
++    bool IsResourceSyncActive() const { return mResourceSyncActive.load(std::memory_order_acquire); }
++    void SetResourceSyncActive(bool Active) { mResourceSyncActive.store(Active, std::memory_order_release); }
+     void SetIsSyncing(bool NewIsSyncing) { mIsSyncing = NewIsSyncing; }
+     void EnqueuePacket(const std::vector<uint8_t>& Packet);
+     [[nodiscard]] std::queue<std::vector<uint8_t>>& MissedPacketQueue() { return mPacketsSync; }
+@@ -132,6 +138,8 @@ private:
+     SparseArray<std::string> mVehiclePosition;
+     std::string mName = "Unknown Client";
+     // Once disconnect starts, this client is terminal and its socket must be treated as dead.
++    std::atomic_bool mResourceSyncActive { false };
++    mutable std::mutex mSocketLifetimeMutex;
+     std::atomic<EDisconnectState> mDisconnectState { EDisconnectState::Connected };
+     ip::tcp::socket mSocket;
+     ip::udp::endpoint mUDPAddress {};
+diff --git a/include/HcodeRMapPermit.h b/include/HcodeRMapPermit.h
+new file mode 100644
+index 0000000..3890f9d
+--- /dev/null
++++ b/include/HcodeRMapPermit.h
+@@ -0,0 +1,116 @@
++#pragma once
++
++#include <algorithm>
++#include <array>
++#include <cctype>
++#include <chrono>
++#include <filesystem>
++#include <fstream>
++#include <memory>
++#include <nlohmann/json.hpp>
++#include <openssl/evp.h>
++#include <openssl/pem.h>
++#include <openssl/rand.h>
++#include <stdexcept>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace HcodeRMapPermit {
++inline constexpr std::string_view StockMap = "/levels/west_coast_usa/info.json";
++inline constexpr std::string_view MapFlag = "?hcoderMapPermit=";
++
++inline bool IsHex256(const std::string& value) {
++    return value.size() == 64 && value.find_first_not_of("0123456789abcdef") == std::string::npos;
++}
++
++inline std::string Base64Url(const unsigned char* bytes, size_t size) {
++    std::string output(4 * ((size + 2) / 3) + 1, '\0');
++    const int length = EVP_EncodeBlock(reinterpret_cast<unsigned char*>(output.data()), bytes, int(size));
++    if (length <= 0) {
++        throw std::runtime_error("map permit encoding");
++    }
++    output.resize(length);
++    std::replace(output.begin(), output.end(), '+', '-');
++    std::replace(output.begin(), output.end(), '/', '_');
++    while (output.back() == '=') {
++        output.pop_back();
++    }
++    return output;
++}
++
++inline std::string RandomId() {
++    std::array<unsigned char, 16> entropy {};
++    if (RAND_bytes(entropy.data(), int(entropy.size())) != 1) {
++        throw std::runtime_error("map permit RNG");
++    }
++    std::string result;
++    constexpr char Hex[] = "0123456789abcdef";
++    for (auto byte : entropy) {
++        result += Hex[byte >> 4];
++        result += Hex[byte & 15];
++    }
++    return result;
++}
++
++inline std::string BuildMapRequest(
++    const std::string& configuredMap,
++    const std::filesystem::path& releasePath = "/run/secrets/hcoder-map-release.json",
++    const std::filesystem::path& signingPath = "/run/secrets/signing-private.pem") {
++    if (configuredMap != StockMap || !std::filesystem::exists(releasePath)) {
++        return configuredMap;
++    }
++    if (!std::filesystem::is_regular_file(releasePath) || std::filesystem::file_size(releasePath) > 4096) {
++        throw std::runtime_error("map permit descriptor");
++    }
++    std::ifstream file(releasePath, std::ios::binary);
++    const auto release = nlohmann::json::parse(file, nullptr, false);
++    if (!release.is_object() || release.value("version", 0) != 1) {
++        throw std::runtime_error("map permit descriptor");
++    }
++
++    const auto sha = release.value("archiveSha256", std::string {});
++    const auto manifest = release.value("manifestSha256", std::string {});
++    const auto secret = release.value("contentKey", std::string {});
++    const auto hosts = release.value("hosts", std::vector<std::string> {});
++    const int port = release.value("port", 0);
++    if (!IsHex256(sha) || !IsHex256(manifest) || !IsHex256(secret)
++        || hosts.empty() || hosts.size() > 4 || port < 1 || port > 65535) {
++        throw std::runtime_error("map permit claims");
++    }
++    for (const auto& host : hosts) {
++        if (host.empty() || host.size() > 60
++            || host.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789.-") != std::string::npos) {
++            throw std::runtime_error("map permit host");
++        }
++    }
++
++    const auto now = std::chrono::duration_cast<std::chrono::seconds>(
++        std::chrono::system_clock::now().time_since_epoch()).count();
++    const auto payload = nlohmann::json {
++        {"v", 1}, {"kid", "mg-rsa-2026-01"}, {"mod", "hcoder-map"},
++        {"sha", sha}, {"manifest", manifest}, {"key", secret},
++        {"hosts", hosts}, {"port", port}, {"jti", RandomId()}, {"iat", now}, {"exp", now + 180}
++    }.dump();
++    const auto wirePayload = Base64Url(reinterpret_cast<const unsigned char*>(payload.data()), payload.size());
++
++    const std::unique_ptr<BIO, decltype(&BIO_free)> pem(BIO_new_file(signingPath.string().c_str(), "r"), BIO_free);
++    const std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> signer(
++        pem ? PEM_read_bio_PrivateKey(pem.get(), nullptr, nullptr, nullptr) : nullptr, EVP_PKEY_free);
++    const std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
++    if (!signer || !ctx || EVP_PKEY_base_id(signer.get()) != EVP_PKEY_RSA || EVP_PKEY_bits(signer.get()) != 2048
++        || EVP_DigestSignInit(ctx.get(), nullptr, EVP_sha256(), nullptr, signer.get()) != 1
++        || EVP_DigestSignUpdate(ctx.get(), wirePayload.data(), wirePayload.size()) != 1) {
++        throw std::runtime_error("map permit signature initialization");
++    }
++    size_t length = 0;
++    if (EVP_DigestSignFinal(ctx.get(), nullptr, &length) != 1 || length != 256) {
++        throw std::runtime_error("map permit signature length");
++    }
++    std::array<unsigned char, 256> signature {};
++    if (EVP_DigestSignFinal(ctx.get(), signature.data(), &length) != 1 || length != signature.size()) {
++        throw std::runtime_error("map permit signature");
++    }
++    return configuredMap + std::string(MapFlag) + wirePayload + '.' + Base64Url(signature.data(), length);
++}
++}
+diff --git a/src/Client.cpp b/src/Client.cpp
+index 7d21594..99a68f7 100644
+--- a/src/Client.cpp
++++ b/src/Client.cpp
+@@ -16,12 +16,16 @@
+ // You should have received a copy of the GNU Affero General Public License
+ // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
++// HCODER modification 2026-10-13: retain transfer descriptor during disconnect.
+ #include "Client.h"
+ 
+ #include "CustomAssert.h"
+ #include "TServer.h"
+ #include <memory>
+ #include <optional>
++#if defined(BEAMMP_LINUX)
++#include <fcntl.h>
++#endif
+ 
+ void TClient::DeleteCar(int Ident) {
+     // TODO: Send delete packets
+@@ -84,6 +88,7 @@ bool TClient::Disconnect(std::string_view Reason) {
+     }
+ 
+     beammp_debugf("Disconnecting client {} for reason: {}", GetID(), Reason);
++    std::lock_guard SocketLifetime(mSocketLifetimeMutex);
+     boost::system::error_code ec;
+     if (mSocket.is_open()) {
+         mSocket.shutdown(socket_base::shutdown_both, ec);
+@@ -102,6 +107,16 @@ bool TClient::Disconnect(std::string_view Reason) {
+     return true;
+ }
+ 
++#if defined(BEAMMP_LINUX)
++int TClient::DuplicateTransferSocket() {
++    // Keep a stable descriptor while shutdown cancels the same socket. Never
++    // let sendfile target a descriptor reused by a Lua/database file write.
++    std::lock_guard SocketLifetime(mSocketLifetimeMutex);
++    if (IsDisconnected() || !mSocket.is_open()) return -1;
++    return ::fcntl(mSocket.native_handle(), F_DUPFD_CLOEXEC, 0);
++}
++#endif
++
+ void TClient::SetCarPosition(int Ident, const std::string& Data) {
+     std::unique_lock lock(mVehiclePositionMutex);
+     mVehiclePosition[size_t(Ident)] = Data;
+diff --git a/src/TNetwork.cpp b/src/TNetwork.cpp
+index 003c94b..027611d 100644
+--- a/src/TNetwork.cpp
++++ b/src/TNetwork.cpp
+@@ -16,7 +16,9 @@
+ // You should have received a copy of the GNU Affero General Public License
+ // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
++// HCODER modification 2026-10-13: cancel raw transfers before shutdown, no blocked kick.
+ #include "TNetwork.h"
++#include "HcodeRMapPermit.h"
+ #include "Client.h"
+ #include "Common.h"
+ #include "LuaAPI.h"
+@@ -550,6 +552,10 @@ std::shared_ptr<TClient> TNetwork::Authentication(TConnection&& RawConnection) {
+ 
+     if (!NotAllowed && !NotAllowedWithReason) {
+         beammp_info("Identification success");
++        // Mark BEFORE exposing the client: file bytes are not framed packets.
++        // This remains true through resource/map synchronization until H completes.
++        // A kick must abort the socket, never append a reason inside a ZIP stream.
++        Client->SetResourceSyncActive(true);
+         mServer.InsertClient(Client);
+         TCPClient(Client);
+     }
+@@ -682,6 +688,15 @@ std::vector<uint8_t> TNetwork::TCPRcv(TClient& c, bool WithTimeout) {
+ 
+ void TNetwork::ClientKick(TClient& c, const std::string& R) {
+     beammp_info("Client kicked: " + R);
++    // Closing a downloading socket cancels sendfile/reads without waiting for
++    // peer receive space. During server shutdown this applies to every client.
++    // Do not hide a SIGKILL or enlarge the game controller's grace period.
++    if (Application::IsShuttingDown() || c.IsResourceSyncActive()) {
++        DisconnectClient(c, "Kicked (resource sync or shutdown)");
++        return;
++    }
++    // Preserve the usual framed kick reason for normal connected players and
++    // authentication errors; it is not valid in the raw resource stream.
+     if (!TCPSend(c, StringToVector("K" + R))) {
+         beammp_debugf("tried to kick player '{}' (id {}), but was already disconnected", c.GetName(), c.GetID());
+     }
+@@ -1009,7 +1024,18 @@ void TNetwork::OnConnect(const std::weak_ptr<TClient>& c) {
+     LockedClient->SetMagic(buf);
+     buf.insert(buf.begin(), 'U');
+     (void)Respond(*LockedClient, buf, true);
+-    (void)Respond(*LockedClient, StringToVector("M" + Application::Settings.getAsString(Settings::Key::General_Map)), true); // Send the Map on connect
++    try {
++        const auto configuredMap = Application::Settings.getAsString(Settings::Key::General_Map);
++        const auto request = HcodeRMapPermit::BuildMapRequest(configuredMap);
++        if (!Respond(*LockedClient, StringToVector("M" + request), true)) {
++            return;
++        }
++    } catch (const std::exception&) {
++        // A configured private map must not send a player into stock geometry.
++        beammp_error("Failed to issue the HcodeR map permit");
++        DisconnectClient(*LockedClient, "HcodeR map permit unavailable");
++        return;
++    }
+     beammp_info(LockedClient->GetName() + " : Connected");
+     LuaAPI::MP::Engine->ReportErrors(LuaAPI::MP::Engine->TriggerEvent("onPlayerJoining", "", LockedClient->GetID()));
+ }
+@@ -1112,14 +1138,21 @@ void TNetwork::SendFileToClient(TClient& c, size_t Size, const std::string& Name
+         beammp_errorf("Failed to open mod '{}' for sending, error: {}", Name, std::strerror(errno));
+         return;
+     }
+-    // native handle, needed in order to make native syscalls with it
+-    int socket = c.GetTCPSock().native_handle();
++    // shutdown affects duplicate descriptors too; close/reuse cannot redirect IO.
++    int socket = c.DuplicateTransferSocket();
++    if (socket < 0) {
++        ::close(fd);
++        return;
++    }
++    auto CloseSocket = [](int* value) { ::close(*value); };
++    const std::unique_ptr<int, decltype(CloseSocket)> SocketLifetime(&socket, CloseSocket);
+ 
+     const auto ToSendTotal = Size;
+     size_t TotalSent = 0;
+-    while (TotalSent < ToSendTotal) {
++    while (TotalSent < ToSendTotal && !c.IsDisconnected()) {
+         off_t SysOffset = off_t(TotalSent);
+         const ssize_t SentNow = sendfile(socket, fd, &SysOffset, ToSendTotal - TotalSent);
++        if (c.IsDisconnected()) break; // requested cancellation, not an IO failure
+         if (SentNow > 0) {
+             TotalSent += size_t(SentNow);
+             continue;
+@@ -1267,6 +1300,7 @@ bool TNetwork::SyncClient(const std::weak_ptr<TClient>& c) {
+         return res;
+     }
+     LockedClient->SetIsSynced(true);
++    LockedClient->SetResourceSyncActive(false);
+     beammp_info(LockedClient->GetName() + (" is now synced!"));
+     return true;
+ }

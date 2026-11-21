@@ -30,7 +30,7 @@ def build():
     r,commit,asset=release();OUT.mkdir();tag=r['tag_name']
     subprocess.run(['git','clone','--depth=1','--branch',tag,'--recurse-submodules','--shallow-submodules','https://github.com/'+OFFICIAL+'.git',str(SRC)],check=True)
     assert run('git','rev-parse','HEAD',cwd=SRC).strip()==commit
-    patch=ROOT/'patches/cancellable-transfer.patch'
+    patch=ROOT/'patches/hcoder-native.patch'
     # No version blacklist and no forced fuzz. An actual API/source conflict is explicit.
     subprocess.run(['git','apply','--check',str(patch)],cwd=SRC,check=True)
     subprocess.run(['git','apply',str(patch)],cwd=SRC,check=True)
@@ -45,6 +45,7 @@ def build():
     assert header[:4]==b'\x7fELF' and int.from_bytes(header[18:20],'little')==183
     linked=run('ldd',str(elf));assert 'not found' not in linked
     version=run(str(elf),'--version',cwd=OUT);assert tag[1:] in version,version
+    subprocess.run([sys.executable, str(ROOT/'tools/check-map-permit.py'), str(SRC)], check=True)
     subs=run('git','submodule','status','--recursive',cwd=SRC)
     # Full modified corresponding source, dependencies' pinned recipes and build tools.
     archive=OUT/'corresponding-source.tar.gz'
@@ -56,14 +57,14 @@ def build():
         for name in ['tools','patches','Dockerfile.native','LICENSE','NOTICES.md']:
             if (ROOT/name).exists():tar.add(ROOT/name,arcname='recipe/'+name)
     assert archive.stat().st_size<268435456
-    manifest={'format':'hcoder-native-release-v1','upstreamVersion':tag[1:],'version':tag[1:]+'-hcoder.c38.1','upstreamTag':tag,'upstreamCommit':commit,'officialReleaseId':r['id'],'officialAsset':{k:asset[k] for k in ['id','name','size','digest','browser_download_url']},'architecture':'aarch64','sha256':sha(elf),'bytes':elf.stat().st_size,'patch_sha256':sha(patch),'builderCommit':os.environ['GITHUB_SHA'],'builderRun':os.environ['GITHUB_RUN_ID'],'submodules':subs.splitlines(),'source_sha256':sha(archive),'license':'AGPL-3.0-only','url':'https://github.com/'+REPO+'/releases/tag/'+tag+'-hcoder.c38.1','buildEnvironment':{'runnerImage':os.environ.get('ImageVersion'),'compiler':run('c++','--version').splitlines()[0],'packages':run('dpkg-query','-W','-f=${Package}=${Version}\n','build-essential','cmake','ninja-build','pkg-config','git','autoconf','automake','libtool','libc6','libstdc++6','liblua5.3-0','python3').splitlines()}}
+    manifest={'format':'hcoder-native-release-v1','upstreamVersion':tag[1:],'version':tag[1:]+'-hcoder.c38.2','upstreamTag':tag,'upstreamCommit':commit,'officialReleaseId':r['id'],'officialAsset':{k:asset[k] for k in ['id','name','size','digest','browser_download_url']},'architecture':'aarch64','sha256':sha(elf),'bytes':elf.stat().st_size,'patch_sha256':sha(patch),'builderCommit':os.environ['GITHUB_SHA'],'builderRun':os.environ['GITHUB_RUN_ID'],'submodules':subs.splitlines(),'source_sha256':sha(archive),'license':'AGPL-3.0-only','url':'https://github.com/'+REPO+'/releases/tag/'+tag+'-hcoder.c38.2','buildEnvironment':{'runnerImage':os.environ.get('ImageVersion'),'compiler':run('c++','--version').splitlines()[0],'packages':run('dpkg-query','-W','-f=${Package}=${Version}\n','build-essential','cmake','ninja-build','pkg-config','git','autoconf','automake','libtool','libc6','libstdc++6','liblua5.3-0','python3').splitlines()}}
     (OUT/'build-result.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print(json.dumps({'compiled':True,'version':manifest['version'],'sha256':manifest['sha256']}),flush=True)
 def publish():
     m=json.loads((OUT/'build-result.json').read_text());assert m['tests']['passed'] and m['tests']['actual_native']
-    release();tag=m['upstreamTag']+'-hcoder.c38.1'
+    release();tag=m['upstreamTag']+'-hcoder.c38.2'
     # A published release is immutable to this tool. Existing candidates must be inspected.
-    r=api('repos/'+REPO+'/releases',{'tag_name':tag,'target_commitish':os.environ['GITHUB_SHA'],'name':m['version'],'draft':True,'prerelease':False,'body':'Exact official stable '+m['upstreamTag']+' + cancellable resource transfer patch. ARM64 native protocol/shutdown tests and complete corresponding sources attached. No private server code or player data.'})
+    r=api('repos/'+REPO+'/releases',{'tag_name':tag,'target_commitish':os.environ['GITHUB_SHA'],'name':m['version'],'draft':True,'prerelease':False,'body':'Exact official stable '+m['upstreamTag']+' with cancellable resource transfers and optional signed HcodeR Map session grants. Includes the ARM64 build, protocol checks and corresponding source.'})
     published=False
     try:
         for name in ['BeamMP-Server','build-result.json','corresponding-source.tar.gz']:
